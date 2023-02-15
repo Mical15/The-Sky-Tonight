@@ -30,6 +30,7 @@ class Website extends React.Component {
 
       const sunRiseStr = tommrow.sunrise // .getHours() + ':' + times.sunrise.getMinutes();     Suncalc seems to be a tad more accurate +/- 1min 
       const sunSetStr = today.sunset // .getHours() + ':' + times.sunset.getMinutes();
+      
 
       const startDay = new Date(sunSetStr);
       const endDay = new Date(sunRiseStr);
@@ -83,31 +84,35 @@ class Website extends React.Component {
         const getDataByUrl = async (url) => {
           axios.get(url)
           .then((response) => {
-            // console.log(response.data)
+            console.log(response.data)
             let astroObjects = [];
             let short = response.data.data;
             // console.log(short)
             if (this.state.testing.length === 0) {
               for (let i = 0; i < short.length; i++) {
-                let tempObj = {
-                  name: short[i].name,
-                  constellation: short[i].constellation,
-                  ra: short[i].rightAscension.hours + 'h ' + short[i].rightAscension.minutes + 'm ' + short[i].rightAscension.seconds + 's',
-                  dec: short[i].declination.degrees + '\u00B0 ' + short[i].declination.arcminutes + `' ` + short[i].declination.arcseconds + `"`,
-                  riseTime: response.data.links.self.substring(97).slice(0, -6),
-                  setTime: ''
-                }
-                astroObjects.push(tempObj) 
-              }          
+                if (short[0].aboveHorizon == true) {
+                  let tempObj = {
+                    name: short[i].name,
+                    constellation: short[i].constellation,
+                    ra: short[i].rightAscension.hours + 'h ' + short[i].rightAscension.minutes + 'm ' + short[i].rightAscension.seconds + 's',
+                    dec: short[i].declination.degrees + '\u00B0 ' + short[i].declination.arcminutes + `' ` + short[i].declination.arcseconds + `"`,
+                    riseTime: response.data.links.self.substring(87).slice(0, -6),
+                    setTime: ''
+                  }
+                  astroObjects.push(tempObj)
+                } 
+               } if (short[0].aboveHorizon == false) {
+                
+              }         
               this.setState({
                 testing: astroObjects
               })
             } else {
               if (response.data.data.length != this.state.testing.length) {
                 if (response.data.data.length > this.state.testing.length) {
-                  isLonger(response.data.data);
+                  isLonger('Longer ' + response.data.data);
                 } else {
-                  isShorter(response.data.data);
+                  isShorter('Shorter ' + response.data.data);
                 }
               }
             }
@@ -126,9 +131,7 @@ class Website extends React.Component {
             .catch((error) => {
               console.log(error)
             })
-          })
-
- 
+          }) 
         }
 
         // Send Requests
@@ -185,23 +188,27 @@ class Website extends React.Component {
         params: {
           latitude: "37.5355",
           longitude: "-122.3355",
-          time: currentTime
+          time: currentTime,
+          aboveHorizon: 'false'
         }
       })
         .then((response) => {
           let astroObjects = [];
           let short = response.data.data;
+          console.log(response.data)
           // console.log(short)
           for (let i = 0; i < short.length; i++) {
-            let tempObj = {
-              name: short[i].name,
-              constellation: short[i].constellation,
-              ra: short[i].rightAscension.hours + 'h ' + short[i].rightAscension.minutes + 'm ' + short[i].rightAscension.seconds + 's',
-              dec: short[i].declination.degrees + '\u00B0 ' + short[i].declination.arcminutes + `' ` + short[i].declination.arcseconds + `"`,
-              riseTime: currentTime,
-              SetTime: ''
+            if (short[i].aboveHorizon = 'true') {
+              let tempObj = {
+                name: short[i].name,
+                constellation: short[i].constellation,
+                ra: short[i].rightAscension.hours + 'h ' + short[i].rightAscension.minutes + 'm ' + short[i].rightAscension.seconds + 's',
+                dec: short[i].declination.degrees + '\u00B0 ' + short[i].declination.arcminutes + `' ` + short[i].declination.arcseconds + `"`,
+                riseTime: currentTime,
+                SetTime: ''
+              }
+              astroObjects.push(tempObj) 
             }
-            astroObjects.push(tempObj) 
           }          
           this.setState({
             data: astroObjects
@@ -217,6 +224,7 @@ class Website extends React.Component {
     componentDidMount() {
       this.getData();
       // this.getTimes();
+      // this.getDataByUrl()
     }
 
     render() {
