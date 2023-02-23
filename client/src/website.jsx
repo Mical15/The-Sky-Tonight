@@ -3,9 +3,65 @@ import axios from "axios";
 import Planets from "./components/planets.jsx";
 import moment from "moment";
 import SunCalc from "suncalc";
+import { MakeObserver, SearchRiseSet } from "./astronomy";
+
+
 
 export default function Website(props) {
-  const [state, setState] = useState([]);
+  const [data, setData] = useState([]);
+
+  // Initalize Variables
+  const now = new Date()
+  let after = new Date(now)
+  after.setDate(after.getDate() + 1)
+
+  const today = SunCalc.getTimes(new Date(), 37.5355, -122.3355);
+  const tommrow = SunCalc.getTimes(after, 37.5355, -122.3355);
+
+  const sunRiseStr = tommrow.sunrise // .getHours() + ':' + times.sunrise.getMinutes();     Suncalc seems to be a tad more accurate +/- 1min
+  const sunSetStr = today.sunset // .getHours() + ':' + times.sunset.getMinutes();
+
+  const startDay = new Date(sunSetStr);
+  const endDay = new Date(sunRiseStr);
+
+  const startDate = moment(startDay);
+  const endDate = moment(endDay);
+  const datesBetween = [];
+
+  let startingMoment = startDate;
+
+  // Create while loop to increment time and create a "times array"
+  while(startingMoment <= endDate) {
+      datesBetween.push(startingMoment.clone());// clone to add new object
+      startingMoment.add(1, 'm');
+  }
+
+  // Format time
+  const timesArray = datesBetween.map(({_i, _d}) => {
+    return {
+      d: moment(_d).format()
+    }
+  })
+
+  // Remove Data that's not needed.
+  let formattedTimeArray = [];
+  timesArray.forEach(ele => {
+    formattedTimeArray.push(ele["d"]);
+  })
+
+  const location = {
+    lat: 46.2046587,
+    lon: 6.2139521
+  };
+  
+  // const toi = createTimeOfInterest.fromCurrentTime();
+  // const moon = createMoon(toi);
+  // moon.getSet(location).then((x) => console.log(x.getDate()));
+  // // console.log(moon.getRise());
+  
+  const obs = MakeObserver(location.lat, location.lon, 0);
+  const date = new Date();
+  console.log(SearchRiseSet("Moon", obs, -1, date, 300));
 
   return <div>Hello World!</div>;
 }
@@ -26,52 +82,52 @@ export default function Website(props) {
 //     // FUTURE PROJECT: Remove "middleman API" -> Create new functions to accurately determine if Mercury/Venus is visable -> Both are tricky, but can be calculated with OG API.
 //     getTimes() { // (**IN** Daylight Savings) CHECK AGAIN IN NOV 6th!!!
 
-//       // Initalize Variables
-//       const now = new Date()
-//       let after = new Date(now)
-//       after.setDate(after.getDate() + 1)
+      // // Initalize Variables
+      // const now = new Date()
+      // let after = new Date(now)
+      // after.setDate(after.getDate() + 1)
 
-//       const today = SunCalc.getTimes(new Date(), 37.5355, -122.3355);
-//       const tommrow = SunCalc.getTimes(after, 37.5355, -122.3355);
+      // const today = SunCalc.getTimes(new Date(), 37.5355, -122.3355);
+      // const tommrow = SunCalc.getTimes(after, 37.5355, -122.3355);
 
-//       const sunRiseStr = tommrow.sunrise // .getHours() + ':' + times.sunrise.getMinutes();     Suncalc seems to be a tad more accurate +/- 1min
-//       const sunSetStr = today.sunset // .getHours() + ':' + times.sunset.getMinutes();
+      // const sunRiseStr = tommrow.sunrise // .getHours() + ':' + times.sunrise.getMinutes();     Suncalc seems to be a tad more accurate +/- 1min
+      // const sunSetStr = today.sunset // .getHours() + ':' + times.sunset.getMinutes();
 
-//       const startDay = new Date(sunSetStr);
-//       const endDay = new Date(sunRiseStr);
+      // const startDay = new Date(sunSetStr);
+      // const endDay = new Date(sunRiseStr);
 
-//       const startDate = moment(startDay);
-//       const endDate = moment(endDay);
-//       const datesBetween = [];
+      // const startDate = moment(startDay);
+      // const endDate = moment(endDay);
+      // const datesBetween = [];
 
-//       let startingMoment = startDate;
+      // let startingMoment = startDate;
 
-//       // Create while loop to increment time and create a "times array"
-//       while(startingMoment <= endDate) {
-//           datesBetween.push(startingMoment.clone());// clone to add new object
-//           startingMoment.add(1, 'm');
-//       }
+      // // Create while loop to increment time and create a "times array"
+      // while(startingMoment <= endDate) {
+      //     datesBetween.push(startingMoment.clone());// clone to add new object
+      //     startingMoment.add(1, 'm');
+      // }
 
-//       // Format time
-//       const timesArray = datesBetween.map(({_i, _d}) => {
-//         return {
-//           d: moment(_d).format()
-//         }
-//       })
+      // // Format time
+      // const timesArray = datesBetween.map(({_i, _d}) => {
+      //   return {
+      //     d: moment(_d).format()
+      //   }
+      // })
 
-//       // Remove Data that's not needed.
-//       let formattedTimeArray = [];
-//       timesArray.forEach(ele => {
-//         formattedTimeArray.push(ele["d"]);
-//       })
+      // // Remove Data that's not needed.
+      // let formattedTimeArray = [];
+      // timesArray.forEach(ele => {
+      //   formattedTimeArray.push(ele["d"]);
+      // })
 
-//       const urlString = 'https://api.visibleplanets.dev/v3?latitude=37.5355&longitude=-122.3355&time='
-//       let urlArray = [];
+      // const urlString = 'https://api.visibleplanets.dev/v3?latitude=37.5355&longitude=-122.3355&time='
+      // let urlArray = [];
 
-//       // Create array of request URLs
-//       formattedTimeArray.forEach(ele => {
-//        urlArray.push(urlString + ele);
-//       })
+      // // Create array of request URLs
+      // formattedTimeArray.forEach(ele => {
+      //  urlArray.push(urlString + ele);
+      // })
 
 //       const batchDataAndRecieve = async (inputArray) => {
 //         // lets create some helper functions
