@@ -63,7 +63,13 @@ export default function Website(props) {
   const date = new Date();
   console.log(SearchRiseSet("Moon", obs, -1, date, 300));
 
-  return <div>Hello World!</div>;
+  return (
+    <div>
+      Hello World!
+      <br /> Again wut
+      <span>hello dude asdfadfdas</span>
+    </div>
+  );
 }
 
 //old code
