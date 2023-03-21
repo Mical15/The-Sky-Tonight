@@ -3650,6 +3650,17 @@ export function HelioDistance(body, date) {
     return HelioVector(body, time).Length();
 }
 /**
+ * @brief A function for which to solve a light-travel time problem.
+ *
+ * The function {@link CorrectLightTravel} solves a generalized
+ * problem of deducing how far in the past light must have left
+ * a target object to be seen by an observer at a specified time.
+ * This interface expresses an arbitrary position vector as
+ * function of time that is passed to {@link CorrectLightTravel}.
+ */
+export class PositionFunction {
+}
+/**
  * Solve for light travel time of a vector function.
  *
  * When observing a distant object, for example Jupiter as seen from Earth,
@@ -3657,13 +3668,13 @@ export function HelioDistance(body, date) {
  * observer can significantly affect the object's apparent position.
  * This function is a generic solver that figures out how long in the
  * past light must have left the observed object to reach the observer
- * at the specified observation time. It requires passing in `func`
+ * at the specified observation time. It uses {@link PositionFunction}
  * to express an arbitrary position vector as a function of time.
  *
- * `CorrectLightTravel` repeatedly calls `func`, passing a series of time
- * estimates in the past. Then `func` must return a relative position vector between
+ * This function repeatedly calls `func.Position`, passing a series of time
+ * estimates in the past. Then `func.Position` must return a relative state vector between
  * the observer and the target. `CorrectLightTravel` keeps calling
- * `func` with more and more refined estimates of the time light must have
+ * `func.Position` with more and more refined estimates of the time light must have
  * left the target to arrive at the observer.
  *
  * For common use cases, it is simpler to use {@link BackdatePosition}
@@ -3673,9 +3684,8 @@ export function HelioDistance(body, date) {
  * position vector for light travel time, only it returns the observation time in
  * the returned vector's `t` field rather than the backdated time.
  *
- * @param {function(AstroTime): number} func
- *      An arbitrary position vector as a function of time:
- *      function({@link AstroTime}) =&gt; {@link Vector}.
+ * @param {PositionFunction} func
+ *      An arbitrary position vector as a function of time.
  *
  * @param {AstroTime} time
  *      The observation time for which to solve for light travel delay.
@@ -3689,7 +3699,7 @@ export function CorrectLightTravel(func, time) {
     let ltime = time;
     let dt = 0;
     for (let iter = 0; iter < 10; ++iter) {
-        const pos = func(ltime);
+        const pos = func.Position(ltime);
         const lt = pos.Length() / C_AUDAY;
         // This solver does not support more than one light-day of distance,
         // because that would cause convergence problems and inaccurate
@@ -3704,8 +3714,9 @@ export function CorrectLightTravel(func, time) {
     }
     throw `Light-travel time solver did not converge: dt = ${dt}`;
 }
-class BodyPosition {
+class BodyPosition extends PositionFunction {
     constructor(observerBody, targetBody, aberration, observerPos) {
+        super();
         this.observerBody = observerBody;
         this.targetBody = targetBody;
         this.aberration = aberration;
@@ -3807,8 +3818,8 @@ export function BackdatePosition(date, observerBody, targetBody, aberration) {
     else {
         observerPos = HelioVector(observerBody, time);
     }
-    const bpos = new BodyPosition(observerBody, targetBody, aberration, observerPos);
-    return CorrectLightTravel(t => bpos.Position(t), time);
+    const func = new BodyPosition(observerBody, targetBody, aberration, observerPos);
+    return CorrectLightTravel(func, time);
 }
 /**
  * @brief Calculates a vector from the center of the Earth to the given body at the given time.
@@ -4049,8 +4060,7 @@ function QuadInterp(tm, dt, fa, fm, fb) {
  * @param {function(AstroTime): number} func
  *      The function to find an ascending zero crossing for.
  *      The function must accept a single parameter of type {@link AstroTime}
- *      and return a numeric value:
- *      function({@link AstroTime}) =&gt; `number`
+ *      and return a numeric value.
  *
  * @param {AstroTime} t1
  *      The lower time bound of a search window.
@@ -4765,90 +4775,6 @@ export function NextMoonQuarter(mq) {
     let date = new Date(mq.time.date.getTime() + 6 * MILLIS_PER_DAY);
     return SearchMoonQuarter(date);
 }
-/**
- * @brief Information about idealized atmospheric variables at a given elevation.
- *
- * @property {number} pressure
- *      Atmospheric pressure in pascals.
- *
- * @property {number} temperature
- *      Atmospheric temperature in kelvins.
- *
- * @property {number} density
- *      Atmospheric density relative to sea level.
- */
-export class AtmosphereInfo {
-    constructor(pressure, temperature, density) {
-        this.pressure = pressure;
-        this.temperature = temperature;
-        this.density = density;
-    }
-}
-/**
- * @brief Calculates U.S. Standard Atmosphere (1976) variables as a function of elevation.
- *
- * This function calculates idealized values of pressure, temperature, and density
- * using the U.S. Standard Atmosphere (1976) model.
- * 1. COESA, U.S. Standard Atmosphere, 1976, U.S. Government Printing Office, Washington, DC, 1976.
- * 2. Jursa, A. S., Ed., Handbook of Geophysics and the Space Environment, Air Force Geophysics Laboratory, 1985.
- * See:
- * https://hbcp.chemnetbase.com/faces/documents/14_12/14_12_0001.xhtml
- * https://ntrs.nasa.gov/api/citations/19770009539/downloads/19770009539.pdf
- * https://www.ngdc.noaa.gov/stp/space-weather/online-publications/miscellaneous/us-standard-atmosphere-1976/us-standard-atmosphere_st76-1562_noaa.pdf
- *
- * @param {number} elevationMeters
- *      The elevation above sea level at which to calculate atmospheric variables.
- *      Must be in the range -500 to +100000, or an exception will occur.
- *
- * @returns {AtmosphereInfo}
- */
-export function Atmosphere(elevationMeters) {
-    const P0 = 101325.0; // pressure at sea level [pascals]
-    const T0 = 288.15; // temperature at sea level [kelvins]
-    const T1 = 216.65; // temperature between 20 km and 32 km [kelvins]
-    if (!Number.isFinite(elevationMeters) || elevationMeters < -500.0 || elevationMeters > 100000.0)
-        throw `Invalid elevation: ${elevationMeters}`;
-    let temperature;
-    let pressure;
-    if (elevationMeters <= 11000.0) {
-        temperature = T0 - 0.0065 * elevationMeters;
-        pressure = P0 * Math.pow(T0 / temperature, -5.25577);
-    }
-    else if (elevationMeters <= 20000.0) {
-        temperature = T1;
-        pressure = 22632.0 * Math.exp(-0.00015768832 * (elevationMeters - 11000.0));
-    }
-    else {
-        temperature = T1 + 0.001 * (elevationMeters - 20000.0);
-        pressure = 5474.87 * Math.pow(T1 / temperature, 34.16319);
-    }
-    // The density is calculated relative to the sea level value.
-    // Using the ideal gas law PV=nRT, we deduce that density is proportional to P/T.
-    const density = (pressure / temperature) / (P0 / T0);
-    return new AtmosphereInfo(pressure, temperature, density);
-}
-function HorizonDipAngle(observer, metersAboveGround) {
-    // Calculate the effective radius of the Earth at ground level below the observer.
-    // Correct for the Earth's oblateness.
-    const phi = observer.latitude * DEG2RAD;
-    const sinphi = Math.sin(phi);
-    const cosphi = Math.cos(phi);
-    const c = 1.0 / Math.hypot(cosphi, sinphi * EARTH_FLATTENING);
-    const s = c * (EARTH_FLATTENING * EARTH_FLATTENING);
-    const ht_km = (observer.height - metersAboveGround) / 1000.0; // height of ground above sea level
-    const ach = EARTH_EQUATORIAL_RADIUS_KM * c + ht_km;
-    const ash = EARTH_EQUATORIAL_RADIUS_KM * s + ht_km;
-    const radius_m = 1000.0 * Math.hypot(ach * cosphi, ash * sinphi);
-    // Correct refraction of a ray of light traveling tangent to the Earth's surface.
-    // Based on: https://www.largeformatphotography.info/sunmooncalc/SMCalc.js
-    // which in turn derives from:
-    // Sweer, John. 1938.  The Path of a Ray of Light Tangent to the Surface of the Earth.
-    // Journal of the Optical Society of America 28 (September):327-329.
-    // k = refraction index
-    const k = 0.175 * Math.pow(1.0 - (6.5e-3 / 283.15) * (observer.height - (2.0 / 3.0) * metersAboveGround), 3.256);
-    // Calculate how far below the observer's horizontal plane the observed horizon dips.
-    return RAD2DEG * -(Math.sqrt(2 * (1 - k) * metersAboveGround / radius_m) / (1 - k));
-}
 function BodyRadiusAu(body) {
     // For the purposes of calculating rise/set times,
     // only the Sun and Moon appear large enough to an observer
@@ -4908,32 +4834,13 @@ function BodyRadiusAu(body) {
  *      in the future (for example, for an observer near the south pole), you can
  *      pass in a larger value like 365.
  *
- * @param {number?} metersAboveGround
- *      Defaults to 0.0 if omitted.
- *      Usually the observer is located at ground level. Then this parameter
- *      should be zero. But if the observer is significantly higher than ground
- *      level, for example in an airplane, this parameter should be a positive
- *      number indicating how far above the ground the observer is.
- *      An exception occurs if `metersAboveGround` is negative.
- *
  * @returns {AstroTime | null}
  *      The date and time of the rise or set event, or null if no such event
  *      occurs within the specified time window.
  */
-export function SearchRiseSet(body, observer, direction, dateStart, limitDays, metersAboveGround = 0.0) {
-    if (!Number.isFinite(metersAboveGround) || (metersAboveGround < 0.0))
-        throw `Invalid value for metersAboveGround: ${metersAboveGround}`;
-    // We want to find when the top of the body crosses the horizon, not the body's center.
-    // Therefore, we need to know the body's radius.
+export function SearchRiseSet(body, observer, direction, dateStart, limitDays) {
     const body_radius_au = BodyRadiusAu(body);
-    // Calculate atmospheric density at ground level.
-    const atmos = Atmosphere(observer.height - metersAboveGround);
-    // Calculate the apparent angular dip of the horizon.
-    const dip = HorizonDipAngle(observer, metersAboveGround);
-    // Correct refraction for objects near the horizon, using atmospheric density at the ground.
-    const altitude = dip - (REFRACTION_NEAR_HORIZON * atmos.density);
-    // Search for the top of the body crossing the corrected altitude angle.
-    return InternalSearchAltitude(body, observer, direction, dateStart, limitDays, body_radius_au, altitude);
+    return InternalSearchAltitude(body, observer, direction, dateStart, limitDays, body_radius_au, -REFRACTION_NEAR_HORIZON);
 }
 /**
  * @brief Finds the next time the center of a body passes through a given altitude.
@@ -6343,9 +6250,6 @@ export function VectorFromHorizon(sphere, time, refraction) {
  * the amount of "lift" caused by atmospheric refraction.
  * This is the number of degrees higher in the sky an object appears
  * due to the lensing of the Earth's atmosphere.
- * This function works best near sea level.
- * To correct for higher elevations, call {@link Atmosphere} for that
- * elevation and multiply the refraction angle by the resulting relative density.
  *
  * @param {string} refraction
  *      `"normal"`: correct altitude for atmospheric refraction (recommended).

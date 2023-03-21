@@ -1023,6 +1023,23 @@ export declare function HelioVector(body: Body, date: FlexibleDateTime): Vector;
  */
 export declare function HelioDistance(body: Body, date: FlexibleDateTime): number;
 /**
+ * @brief A function for which to solve a light-travel time problem.
+ *
+ * The function {@link CorrectLightTravel} solves a generalized
+ * problem of deducing how far in the past light must have left
+ * a target object to be seen by an observer at a specified time.
+ * This interface expresses an arbitrary position vector as
+ * function of time that is passed to {@link CorrectLightTravel}.
+ */
+export declare abstract class PositionFunction {
+    /**
+     * @brief Returns a relative position vector for a given time.
+     * @param {AstroTime} time
+     *      The time at which to evaluate a relative position vector.
+     */
+    abstract Position(time: AstroTime): Vector;
+}
+/**
  * Solve for light travel time of a vector function.
  *
  * When observing a distant object, for example Jupiter as seen from Earth,
@@ -1030,13 +1047,13 @@ export declare function HelioDistance(body: Body, date: FlexibleDateTime): numbe
  * observer can significantly affect the object's apparent position.
  * This function is a generic solver that figures out how long in the
  * past light must have left the observed object to reach the observer
- * at the specified observation time. It requires passing in `func`
+ * at the specified observation time. It uses {@link PositionFunction}
  * to express an arbitrary position vector as a function of time.
  *
- * `CorrectLightTravel` repeatedly calls `func`, passing a series of time
- * estimates in the past. Then `func` must return a relative position vector between
+ * This function repeatedly calls `func.Position`, passing a series of time
+ * estimates in the past. Then `func.Position` must return a relative state vector between
  * the observer and the target. `CorrectLightTravel` keeps calling
- * `func` with more and more refined estimates of the time light must have
+ * `func.Position` with more and more refined estimates of the time light must have
  * left the target to arrive at the observer.
  *
  * For common use cases, it is simpler to use {@link BackdatePosition}
@@ -1046,9 +1063,8 @@ export declare function HelioDistance(body: Body, date: FlexibleDateTime): numbe
  * position vector for light travel time, only it returns the observation time in
  * the returned vector's `t` field rather than the backdated time.
  *
- * @param {function(AstroTime): number} func
- *      An arbitrary position vector as a function of time:
- *      function({@link AstroTime}) =&gt; {@link Vector}.
+ * @param {PositionFunction} func
+ *      An arbitrary position vector as a function of time.
  *
  * @param {AstroTime} time
  *      The observation time for which to solve for light travel delay.
@@ -1058,7 +1074,7 @@ export declare function HelioDistance(body: Body, date: FlexibleDateTime): numbe
  *      The `t` field holds the time that light left the observed
  *      body to arrive at the observer at the observation time.
  */
-export declare function CorrectLightTravel(func: (t: AstroTime) => Vector, time: AstroTime): Vector;
+export declare function CorrectLightTravel(func: PositionFunction, time: AstroTime): Vector;
 /**
  * @brief Solve for light travel time correction of apparent position.
  *
@@ -1221,8 +1237,7 @@ export interface SearchOptions {
  * @param {function(AstroTime): number} func
  *      The function to find an ascending zero crossing for.
  *      The function must accept a single parameter of type {@link AstroTime}
- *      and return a numeric value:
- *      function({@link AstroTime}) =&gt; `number`
+ *      and return a numeric value.
  *
  * @param {AstroTime} t1
  *      The lower time bound of a search window.
@@ -1568,43 +1583,6 @@ export declare function SearchMoonQuarter(dateStart: FlexibleDateTime): MoonQuar
  */
 export declare function NextMoonQuarter(mq: MoonQuarter): MoonQuarter;
 /**
- * @brief Information about idealized atmospheric variables at a given elevation.
- *
- * @property {number} pressure
- *      Atmospheric pressure in pascals.
- *
- * @property {number} temperature
- *      Atmospheric temperature in kelvins.
- *
- * @property {number} density
- *      Atmospheric density relative to sea level.
- */
-export declare class AtmosphereInfo {
-    pressure: number;
-    temperature: number;
-    density: number;
-    constructor(pressure: number, temperature: number, density: number);
-}
-/**
- * @brief Calculates U.S. Standard Atmosphere (1976) variables as a function of elevation.
- *
- * This function calculates idealized values of pressure, temperature, and density
- * using the U.S. Standard Atmosphere (1976) model.
- * 1. COESA, U.S. Standard Atmosphere, 1976, U.S. Government Printing Office, Washington, DC, 1976.
- * 2. Jursa, A. S., Ed., Handbook of Geophysics and the Space Environment, Air Force Geophysics Laboratory, 1985.
- * See:
- * https://hbcp.chemnetbase.com/faces/documents/14_12/14_12_0001.xhtml
- * https://ntrs.nasa.gov/api/citations/19770009539/downloads/19770009539.pdf
- * https://www.ngdc.noaa.gov/stp/space-weather/online-publications/miscellaneous/us-standard-atmosphere-1976/us-standard-atmosphere_st76-1562_noaa.pdf
- *
- * @param {number} elevationMeters
- *      The elevation above sea level at which to calculate atmospheric variables.
- *      Must be in the range -500 to +100000, or an exception will occur.
- *
- * @returns {AtmosphereInfo}
- */
-export declare function Atmosphere(elevationMeters: number): AtmosphereInfo;
-/**
  * @brief Searches for the next time a celestial body rises or sets as seen by an observer on the Earth.
  *
  * This function finds the next rise or set time of the Sun, Moon, or planet other than the Earth.
@@ -1652,19 +1630,11 @@ export declare function Atmosphere(elevationMeters: number): AtmosphereInfo;
  *      in the future (for example, for an observer near the south pole), you can
  *      pass in a larger value like 365.
  *
- * @param {number?} metersAboveGround
- *      Defaults to 0.0 if omitted.
- *      Usually the observer is located at ground level. Then this parameter
- *      should be zero. But if the observer is significantly higher than ground
- *      level, for example in an airplane, this parameter should be a positive
- *      number indicating how far above the ground the observer is.
- *      An exception occurs if `metersAboveGround` is negative.
- *
  * @returns {AstroTime | null}
  *      The date and time of the rise or set event, or null if no such event
  *      occurs within the specified time window.
  */
-export declare function SearchRiseSet(body: Body, observer: Observer, direction: number, dateStart: FlexibleDateTime, limitDays: number, metersAboveGround?: number): AstroTime | null;
+export declare function SearchRiseSet(body: Body, observer: Observer, direction: number, dateStart: FlexibleDateTime, limitDays: number): AstroTime | null;
 /**
  * @brief Finds the next time the center of a body passes through a given altitude.
  *
@@ -2282,9 +2252,6 @@ export declare function VectorFromHorizon(sphere: Spherical, time: FlexibleDateT
  * the amount of "lift" caused by atmospheric refraction.
  * This is the number of degrees higher in the sky an object appears
  * due to the lensing of the Earth's atmosphere.
- * This function works best near sea level.
- * To correct for higher elevations, call {@link Atmosphere} for that
- * elevation and multiply the refraction angle by the resulting relative density.
  *
  * @param {string} refraction
  *      `"normal"`: correct altitude for atmospheric refraction (recommended).

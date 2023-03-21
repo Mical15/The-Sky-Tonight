@@ -30,6 +30,9 @@ module.exports = {
         address: `localhost:${process.env.PORT || 3000}`,
         // host: `localhost:${process.env.PORT || 3000}`,
       },
+      middleware: (app, builtins) => {
+        app.use(builtins.proxy('/api', {target:'http://localhost:3000'}))
+      }
       // address: `localhost:${process.env.PORT || 3000}`,
       // host: `http://localhost:${process.env.PORT || 3000}`,
     }),

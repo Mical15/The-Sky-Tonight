@@ -1,8 +1,9 @@
 const express = require('express')
 const bodyParser = require('body-parser');
+const astroCalc = require('./astroCalc')
 const cors = require('cors');
 const app = express()
-const port = 3000
+const port = 3001
 
 
 app.use(bodyParser.json());
@@ -12,8 +13,9 @@ app.use(express.urlencoded({ extended: true }));
 
 
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
+app.get('/api/getPlanetTimes', (req, res) => {
+  let result = astroCalc()
+  res.send(result);
 })
 
 app.listen(port, () => {

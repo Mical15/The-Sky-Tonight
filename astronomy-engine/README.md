@@ -466,6 +466,20 @@ and the velocities in AU/day.
 
 * * *
 
+<a name="PositionFunction"></a>
+
+## PositionFunction
+**Kind**: global class  
+**Brief**: A function for which to solve a light-travel time problem.
+
+The function [CorrectLightTravel](#CorrectLightTravel) solves a generalized
+problem of deducing how far in the past light must have left
+a target object to be seen by an observer at a specified time.
+This interface expresses an arbitrary position vector as
+function of time that is passed to [CorrectLightTravel](#CorrectLightTravel).  
+
+* * *
+
 <a name="IlluminationInfo"></a>
 
 ## IlluminationInfo
@@ -499,22 +513,6 @@ and the velocities in AU/day.
 | --- | --- | --- |
 | quarter | <code>number</code> | An integer as follows:      0 = new moon,      1 = first quarter,      2 = full moon,      3 = third quarter. |
 | time | [<code>AstroTime</code>](#AstroTime) | The date and time of the quarter lunar phase. |
-
-
-* * *
-
-<a name="AtmosphereInfo"></a>
-
-## AtmosphereInfo
-**Kind**: global class  
-**Brief**: Information about idealized atmospheric variables at a given elevation.  
-**Properties**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| pressure | <code>number</code> | Atmospheric pressure in pascals. |
-| temperature | <code>number</code> | Atmospheric temperature in kelvins. |
-| density | <code>number</code> | Atmospheric density relative to sea level. |
 
 
 * * *
@@ -1207,28 +1205,6 @@ contains the centers of the Earth, the Sun, and `body`.
 
 * * *
 
-<a name="Atmosphere"></a>
-
-## Atmosphere(elevationMeters) ⇒ [<code>AtmosphereInfo</code>](#AtmosphereInfo)
-**Kind**: global function  
-**Brief**: Calculates U.S. Standard Atmosphere (1976) variables as a function of elevation.
-
-This function calculates idealized values of pressure, temperature, and density
-using the U.S. Standard Atmosphere (1976) model.
-1. COESA, U.S. Standard Atmosphere, 1976, U.S. Government Printing Office, Washington, DC, 1976.
-2. Jursa, A. S., Ed., Handbook of Geophysics and the Space Environment, Air Force Geophysics Laboratory, 1985.
-See:
-https://hbcp.chemnetbase.com/faces/documents/14_12/14_12_0001.xhtml
-https://ntrs.nasa.gov/api/citations/19770009539/downloads/19770009539.pdf
-https://www.ngdc.noaa.gov/stp/space-weather/online-publications/miscellaneous/us-standard-atmosphere-1976/us-standard-atmosphere_st76-1562_noaa.pdf  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| elevationMeters | <code>number</code> | The elevation above sea level at which to calculate atmospheric variables.      Must be in the range -500 to +100000, or an exception will occur. |
-
-
-* * *
-
 <a name="BackdatePosition"></a>
 
 ## BackdatePosition(date, observerBody, targetBody, aberration) ⇒ [<code>Vector</code>](#Vector)
@@ -1331,13 +1307,13 @@ the amount of time it takes for light to travel from the object to the
 observer can significantly affect the object's apparent position.
 This function is a generic solver that figures out how long in the
 past light must have left the observed object to reach the observer
-at the specified observation time. It requires passing in `func`
+at the specified observation time. It uses [PositionFunction](#PositionFunction)
 to express an arbitrary position vector as a function of time.
 
-`CorrectLightTravel` repeatedly calls `func`, passing a series of time
-estimates in the past. Then `func` must return a relative position vector between
+This function repeatedly calls `func.Position`, passing a series of time
+estimates in the past. Then `func.Position` must return a relative state vector between
 the observer and the target. `CorrectLightTravel` keeps calling
-`func` with more and more refined estimates of the time light must have
+`func.Position` with more and more refined estimates of the time light must have
 left the target to arrive at the observer.
 
 For common use cases, it is simpler to use [BackdatePosition](#BackdatePosition)
@@ -1354,7 +1330,7 @@ the returned vector's `t` field rather than the backdated time.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| func | <code>function</code> | An arbitrary position vector as a function of time:      function([AstroTime](#AstroTime)) =&gt; [Vector](#Vector). |
+| func | [<code>PositionFunction</code>](#PositionFunction) | An arbitrary position vector as a function of time. |
 | time | [<code>AstroTime</code>](#AstroTime) | The observation time for which to solve for light travel delay. |
 
 
@@ -2363,10 +2339,7 @@ reorient ECL coordinates to the orientation of your telescope camera.
 Given an altitude angle and a refraction option, calculates
 the amount of "lift" caused by atmospheric refraction.
 This is the number of degrees higher in the sky an object appears
-due to the lensing of the Earth's atmosphere.
-This function works best near sea level.
-To correct for higher elevations, call [Atmosphere](#Atmosphere) for that
-elevation and multiply the refraction angle by the resulting relative density.  
+due to the lensing of the Earth's atmosphere.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -2806,7 +2779,7 @@ or even that the function will return `null`, indicating that no event was found
 
 | Param | Type | Description |
 | --- | --- | --- |
-| func | <code>function</code> | The function to find an ascending zero crossing for.      The function must accept a single parameter of type [AstroTime](#AstroTime)      and return a numeric value:      function([AstroTime](#AstroTime)) =&gt; `number` |
+| func | <code>function</code> | The function to find an ascending zero crossing for.      The function must accept a single parameter of type [AstroTime](#AstroTime)      and return a numeric value. |
 | t1 | [<code>AstroTime</code>](#AstroTime) | The lower time bound of a search window. |
 | t2 | [<code>AstroTime</code>](#AstroTime) | The upper time bound of a search window. |
 | options | [<code>SearchOptions</code>](#SearchOptions) \| <code>undefined</code> | Options that can tune the behavior of the search.      Most callers can omit this argument. |
@@ -3150,7 +3123,7 @@ This means the Earth and the other planet are on opposite sides of the Sun.
 
 <a name="SearchRiseSet"></a>
 
-## SearchRiseSet(body, observer, direction, dateStart, limitDays, metersAboveGround) ⇒ [<code>AstroTime</code>](#AstroTime) \| <code>null</code>
+## SearchRiseSet(body, observer, direction, dateStart, limitDays) ⇒ [<code>AstroTime</code>](#AstroTime) \| <code>null</code>
 **Kind**: global function  
 **Returns**: [<code>AstroTime</code>](#AstroTime) \| <code>null</code> - The date and time of the rise or set event, or null if no such event
      occurs within the specified time window.  
@@ -3177,14 +3150,13 @@ This is because the Moon sets nearly an hour later each day due to orbiting the 
 significant amount during each rotation of the Earth.
 Therefore callers must not assume that the function will always succeed.  
 
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| body | [<code>Body</code>](#Body) |  | The Sun, Moon, any planet other than the Earth,      or a user-defined star that was created by a call to [DefineStar](#DefineStar). |
-| observer | [<code>Observer</code>](#Observer) |  | Specifies the geographic coordinates and elevation above sea level of the observer. |
-| direction | <code>number</code> |  | Either +1 to find rise time or -1 to find set time.      Any other value will cause an exception to be thrown. |
-| dateStart | [<code>FlexibleDateTime</code>](#FlexibleDateTime) |  | The date and time after which the specified rise or set time is to be found. |
-| limitDays | <code>number</code> |  | Limits how many days to search for a rise or set time, and defines      the direction in time to search. When `limitDays` is positive, the      search is performed into the future, after `dateStart`.      When negative, the search is performed into the past, before `dateStart`.      To limit a rise or set time to the same day, you can use a value of 1 day.      In cases where you want to find the next rise or set time no matter how far      in the future (for example, for an observer near the south pole), you can      pass in a larger value like 365. |
-| metersAboveGround | <code>number</code> | <code>0</code> | Defaults to 0.0 if omitted.      Usually the observer is located at ground level. Then this parameter      should be zero. But if the observer is significantly higher than ground      level, for example in an airplane, this parameter should be a positive      number indicating how far above the ground the observer is.      An exception occurs if `metersAboveGround` is negative. |
+| Param | Type | Description |
+| --- | --- | --- |
+| body | [<code>Body</code>](#Body) | The Sun, Moon, any planet other than the Earth,      or a user-defined star that was created by a call to [DefineStar](#DefineStar). |
+| observer | [<code>Observer</code>](#Observer) | Specifies the geographic coordinates and elevation above sea level of the observer. |
+| direction | <code>number</code> | Either +1 to find rise time or -1 to find set time.      Any other value will cause an exception to be thrown. |
+| dateStart | [<code>FlexibleDateTime</code>](#FlexibleDateTime) | The date and time after which the specified rise or set time is to be found. |
+| limitDays | <code>number</code> | Limits how many days to search for a rise or set time, and defines      the direction in time to search. When `limitDays` is positive, the      search is performed into the future, after `dateStart`.      When negative, the search is performed into the past, before `dateStart`.      To limit a rise or set time to the same day, you can use a value of 1 day.      In cases where you want to find the next rise or set time no matter how far      in the future (for example, for an observer near the south pole), you can      pass in a larger value like 365. |
 
 
 * * *
