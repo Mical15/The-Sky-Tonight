@@ -5,10 +5,8 @@ import moment from "moment";
 import SunCalc from "suncalc";
 // import { MakeObserver, SearchRiseSet } from "./astronomy";
 
-
-
 export default function Website(props) {
-  const [data, setData] = useState();
+  const [data, setData] = useState([]);
 
   function getData() {
     axios.get('/api/getPlanetTimes')
@@ -19,14 +17,23 @@ export default function Website(props) {
 
   useEffect(() => {
     getData()
-  })
+  }, [])
 
   return (
     <div>
-      <h1>Hello World!</h1>
-      {data && <h1>data: {data} </h1>}
+      {/* {console.log(data)} */}
+      {data.length > 0 ? data.map((value, index) => {
+        return (
+          <div style={{float: 'left', padding: '20px'}} key={index}> <h3 style={{textAlign: 'center'}}>{value.name}</h3>
+            <li>Object: {" " + value.planet}</li>
+            <li>Rise Time: {" " + value.riseTimes}</li>
+            <li>Set Time: {" " + value.setTimes}</li>
+          </div>
+          )
+        }) : <h1>Loading...</h1>
+      }
     </div>
-  );
+  )
 }
 
 
@@ -311,19 +318,19 @@ export default function Website(props) {
 
 //           <Planets data={this.state.data} />
 
-//           {this.state.data.length > 0 &&
-//             <div style={{position: 'relative'}}>
-//               {this.state.data.map((value, index) => {
-//                  return (
-//                  <div style={{float: 'left', padding: '20px'}} key={index}> <h3 style={{textAlign: 'center'}}>{value.name}</h3>
-//                     <li> Constellation: {" " + value.constellation}</li>
-//                     <li>Right Ascension: {" " + value.ra}</li>
-//                     <li>Declination: {" " + value.dec}</li>
-//                     <li>Rise Time: {" " + value.riseTime}</li>
-//                     <li>Set Time: {" " + value.setTime}</li>
-//                  </div> )
-//                  })}
-//             </div>
+          // {this.state.data.length > 0 &&
+          //   <div style={{position: 'relative'}}>
+          //     {this.state.data.map((value, index) => {
+          //        return (
+          //        <div style={{float: 'left', padding: '20px'}} key={index}> <h3 style={{textAlign: 'center'}}>{value.name}</h3>
+          //           <li> Constellation: {" " + value.constellation}</li>
+          //           <li>Right Ascension: {" " + value.ra}</li>
+          //           <li>Declination: {" " + value.dec}</li>
+          //           <li>Rise Time: {" " + value.riseTime}</li>
+          //           <li>Set Time: {" " + value.setTime}</li>
+          //        </div> )
+          //        })}
+          //    </div>
 //           }
 
 //         </div>

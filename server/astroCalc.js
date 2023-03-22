@@ -54,6 +54,15 @@ function astroCalc() {
     setTimes: new Date(Astronomy.SearchRiseSet('Moon', obs, -1, date, 300))
   })
 
+  // filteredPlanetTimes.forEach((ele) => {
+  //   if (typeof(ele.riseTimes) != "string") {
+  //     ele.riseTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
+  //   }
+  //   if (typeof(ele.setTimes) != "string") {
+  //     ele.setTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
+  //   }
+  // })
+
 
  return filteredPlanetTimes;  
 
