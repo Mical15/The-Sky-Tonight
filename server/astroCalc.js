@@ -15,8 +15,8 @@ function astroCalc() {
   
   let todaysSunRiseTime = new Date(Astronomy.SearchRiseSet('Sun', obs, +1, yesterday, 300))
   let sunRiseTime = new Date(Astronomy.SearchRiseSet('Sun', obs, +1, date, 300))
-  let sunSetTime = new Date(Astronomy.SearchRiseSet('Sun', obs, -1, date, 300)) // need to test, I think the library changes "date" once sunset time has been reached. Useful for astronomeres, not useful for people.
-  // let sunSetTime = new Date().now() <= new Date(Astronomy.SearchRiseSet('Sun', obs, -1, date, 300)).getTime() ? new Date(Astronomy.SearchRiseSet('Sun', obs, -1, date, 300)) : new Date(Astronomy.SearchRiseSet('Sun', obs, -1, yesterday, 300))
+  // let sunSetTime = new Date(Astronomy.SearchRiseSet('Sun', obs, -1, date, 300)) // need to test, I think the library changes "date" once sunset time has been reached. Useful for astronomeres, not useful for people.
+  let sunSetTime = new Date().getTime() <= new Date(Astronomy.SearchRiseSet('Sun', obs, -1, date, 300)).getTime() ? new Date(Astronomy.SearchRiseSet('Sun', obs, -1, date, 300)) : new Date(Astronomy.SearchRiseSet('Sun', obs, -1, yesterday, 300))
   
   
   let planets = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune']; // add moon last, it's always visable when above horizon; day or night
@@ -54,15 +54,19 @@ function astroCalc() {
     setTimes: new Date(Astronomy.SearchRiseSet('Moon', obs, -1, date, 300))
   })
 
-  // filteredPlanetTimes.forEach((ele) => {
-  //   if (typeof(ele.riseTimes) != "string") {
-  //     ele.riseTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
-  //   }
-  //   if (typeof(ele.setTimes) != "string") {
-  //     ele.setTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
-  //   }
-  // })
+  filteredPlanetTimes.forEach((ele) => {
+    if (ele.riseTimes !== "Sunset") {
+      console.log(ele.riseTimes)
+      ele.riseTimes = new Date(ele.riseTimes).toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
+    }
+    if (ele.setTimes !== "Sunrise") {
+      ele.setTimes = new Date(ele.setTimes).toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
+    }
+  })
 
+  filteredPlanetTimes.forEach(ele => {
+    console.log(ele.planet, 'Rise Time: ', ele.riseTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}), 'Set Time: ', ele.setTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
+  })
 
  return filteredPlanetTimes;  
 
@@ -71,8 +75,6 @@ function astroCalc() {
 module.exports = astroCalc
 
 
-// filteredPlanetTimes.forEach(ele => {
-//   console.log(ele.planet, 'Rise Time: ', ele.riseTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}), 'Set Time: ', ele.setTimes.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
-// })
+
 
 // console.log('\n', 'Sunrise time: ', sunRiseTime.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}), 'sunset time: ', sunSetTime.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}), '\n')
